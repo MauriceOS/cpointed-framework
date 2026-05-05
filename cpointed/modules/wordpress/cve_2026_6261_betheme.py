@@ -54,13 +54,14 @@ class CVE20266261Betheme(WordPressModule):
 
     async def exploit_remote_primitive(
         self,
-        target: Target,
         client: CPointedClient,
+        wp_path: str,
         *,
+        target: Target,
         timeout: float,
     ) -> dict:
         """Muffin builder import: JSON layout POST then optional XML upload (verify against Betheme SA)."""
-        ajax = self._path(target, "/wp-admin/admin-ajax.php")
+        ajax = self._path_for_wp(wp_path, "/wp-admin/admin-ajax.php")
         out: dict = {"admin_ajax_posts": []}
         try:
             layout_json = '{"type":"section","items":[{"type":"wrap","items":[]}]}'

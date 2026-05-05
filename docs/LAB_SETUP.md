@@ -1,111 +1,129 @@
-# cpointed Lab Setup (Authorized Testing Only)
+# cpointed Lab Environment (Vulnerable cPanel + WordPress)
 
 # Made by Sn0w8ird
 
-This document describes how to run a **defensive / purple-team style lab** for validating **cpointed** scans, exploit hooks, and remediation — **not** for unauthorized targets.
+This document supports **authorized** lab testing of CVE-2026-41940-class chains and WordPress CVE primitives. **Do not** aim tooling at systems without written permission.
 
-## Legal disclaimer
+## Legal
 
-**Legal use only:** This framework is for **authorized** security assessments and blue-team defense. **Unauthorized use is prohibited.** All destructive operations require **explicit written permission** from the system owner and the environment variable **`CPOINTED_AUTHORIZED=1`**.
+**Legal use only:** This framework is for **authorized** security assessments and blue-team defense. **Unauthorized use is prohibited.** All exploitation requires **explicit permission** and **`CPOINTED_AUTHORIZED=1`**.
 
-## Required environment variables
+## Prerequisites
 
-| Variable | Purpose |
-|---------|---------|
-| `CPOINTED_AUTHORIZED=1` | Gate for exploit chains, persistence, and remote remediation. |
-| `CPOINTED_SSH_PUBKEY` | Your single-line OpenSSH **public** key for WHM Fileman SSH tests (CVE chain). |
-| `CPOINTED_PAYLOAD_DIR` | Optional operator bundle root (see `cpointed.payloads`). |
-| `CPOINTED_WP_AUDIT_USER` / `CPOINTED_WP_AUDIT_EMAIL` | Optional WordPress registration probe identity. |
+- Docker & Docker Compose
+- ~16GB RAM recommended for heavy stacks (cPanel-style VMs often need several GB)
+- Linux host often simplest (macOS/Windows: Docker Desktop or a Linux VM)
 
-## WordPress + WPvivid (e.g. 0.9.123) — Docker
+## ⚠️ cPanel container images
 
-Official **cPanel/WHM** is not redistributable as a simple public **Docker Compose** image aligned to **11.110.0.96**. For plugin-level validation, use a **WordPress** stack and install a **specific WPvivid** zip from your **vendor-approved** archive.
+Official **cPanel/WHM** is commercial software. **Public Docker Hub images** claiming a specific build (e.g. `vimagick/cpanel:11.110.0.96`) may be **unofficial, outdated, or unavailable**. **You** must verify **license compliance**, image **provenance**, and **legality** before use. Prefer **vendor-approved** trials, snapshots, or internal golden images documented under your org’s naming convention.
 
-Example `docker-compose.yml` (WordPress only — **adjust versions and passwords**):
+The `cpanel` service block below is an **example layout** only — replace `image:` with whatever your org’s legal lab registry provides.
+
+## Build & run (example)
+
+```bash
+git clone https://github.com/MauriceOS/cpointed-framework.git
+cd cpointed-framework
+# Place a compose file in your private lab repo; see example snippet below.
+docker compose -f docker-compose.lab.yml up -d
+```
+
+### Access (example targets — replace with your lab matrix)
+
+| Service | URL | Notes |
+|--------|-----|--------|
+| WHM / cPanel (lab) | `https://localhost:2087` | Credentials from **your** image/docs — often **not** `root`/static passwords |
+| WordPress | `http://localhost:8080` | Create admin during web install; do **not** use `admin`/`admin` in real environments |
+
+## Example `docker-compose.lab.yml`
 
 ```yaml
+version: "3.8"
 services:
-  db:
-    image: mariadb:10.11
+  # Replace with a LICENSED / APPROVED lab image name from your org
+  cpanel:
+    image: YOUR_REGISTRY/cpanel-lab:11.110-training  # example placeholder only
+    container_name: cpanel-lab
+    ports:
+      - "2087:2087"
+      - "2083:2083"
     environment:
-      MYSQL_DATABASE: wordpress
-      MYSQL_USER: wp
-      MYSQL_PASSWORD: changeme
-      MYSQL_ROOT_PASSWORD: rootchangeme
+      - CPANEL_LAB_PASS=ChangeMeOnFirstBoot
     volumes:
-      - db_data:/var/lib/mysql
+      - ./cpanel-data:/var/cpanel
 
   wordpress:
-    image: wordpress:6.5-php8.2-apache
-    depends_on:
-      - db
+    image: wordpress:6.0
     ports:
       - "8080:80"
     environment:
-      WORDPRESS_DB_HOST: db:3306
-      WORDPRESS_DB_USER: wp
-      WORDPRESS_DB_PASSWORD: changeme
-      WORDPRESS_DB_NAME: wordpress
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_NAME: wp
+      WORDPRESS_DB_USER: wpuser
+      WORDPRESS_DB_PASSWORD: wp123
+    depends_on:
+      - db
     volumes:
-      - wp_html:/var/www/html
+      - ./wp-content:/var/www/html/wp-content
 
-volumes:
-  db_data:
-  wp_html:
+  db:
+    image: mariadb:10.7
+    environment:
+      MYSQL_DATABASE: wp
+      MYSQL_USER: wpuser
+      MYSQL_PASSWORD: wp123
+      MYSQL_ROOT_PASSWORD: root123
 ```
 
-### Install pinned WPvivid (example)
+## After WordPress starts — pin vulnerable plugins (lab only)
 
-1. Start compose: `docker compose up -d`
-2. Complete the WordPress web installer at `http://127.0.0.1:8080`
-3. Install **WPvivid Backup** from a **zip you obtained lawfully** (e.g. vendor archive of **0.9.123** for a **lab**).
+Use **WP-CLI** inside the container when available; versions are **examples** — align with your advisory:
 
-### Run cpointed against the lab
+```bash
+docker exec -it wordpress bash -lc "wp plugin install wpvivid-backuprestore --version=0.9.123 --activate --allow-root || true"
+docker exec -it wordpress bash -lc "wp plugin install kivicare --version=1.2.3 --activate --allow-root || true"
+```
+
+## Exploit steps (authorized)
 
 ```bash
 export CPOINTED_AUTHORIZED=1
-python -m cpointed wp scan --host 127.0.0.1 --port 8080 --ssl --path /
-python -m cpointed scan --host 127.0.0.1 --port 8080 --no-ssl --wordpress --json-out out.json
+export CPOINTED_SSH_PUBKEY="$(cat ~/.ssh/id_rsa.pub 2>/dev/null || echo 'ssh-ed25519 ...')"
 ```
 
-### Exploit primitive (authorized)
+### cPanel chain (adjust host/port)
 
-After confirming scope, trigger the module exploit (records **real HTTP** for reporting):
+```bash
+python -m cpointed exploit --cve CVE-2026-41940 --host 127.0.0.1 --port 2087 --ssl
+```
+
+### WordPress primitives
+
+Set **`CPOINTED_KIVICARE_LAB_JWT`** for KiviCare REST tests when your PoC supplies a JWT.
 
 ```bash
 python -c "import asyncio,os; os.environ['CPOINTED_AUTHORIZED']='1'; from cpointed.core.engine import Target; from cpointed.modules.wordpress.cve_2026_1357_wpvivid import CVE20261357WPvivid; print(asyncio.run(CVE20261357WPvivid().exploit(Target('127.0.0.1',8080,False))))"
 ```
 
-Tune **`exploit_remote_primitive`** field names to your **verified PoC** if the plugin build differs.
-
-### Remediate and verify
-
-1. **Upgrade** WPvivid to a **patched** vendor release (or remove the plugin).
-2. Re-run **`wp scan`** and compare JSON/HTML reports.
-3. For **host cleanup** after a full engagement (SSH access assumed):
+### Remediate (SSH to lab host)
 
 ```bash
-export CPOINTED_AUTHORIZED=1
-python -m cpointed.remediation.cleaner <host> <ssh_user> <path_to_key> [--auto-patch]
+python -m cpointed.remediation.cleaner 127.0.0.1 root ~/.ssh/admin_key --auto-patch
 ```
 
-## cPanel / WHM (11.110.0.96-class builds)
+## Cleanup
 
-Use a **licensed** cPanel environment (VM, cloud image, or vendor trial) permitted for security testing. There is **no** endorsed public Compose recipe for full **cPanel 11.110.0.96** in this repo; document your **internal** image name and snapshot IDs in the engagement folder.
+```bash
+docker compose -f docker-compose.lab.yml down -v
+```
 
-Typical flow after lab provision:
+## Environment variables (reference)
 
-1. `export CPOINTED_AUTHORIZED=1` and `CPOINTED_SSH_PUBKEY=...`
-2. `python -m cpointed scan --host <whm_host> --port 2087 --fingerprint --json-out cpanel.json`
-3. `python -m cpointed exploit --cve CVE-2026-41940 --host <whm_host> --port 2087 ...` (only in-scope)
-4. Archive artefacts for the **organization closeout report**.
-
-## Reporting
-
-Capture:
-
-- CLI JSON / HTML outputs
-- Exploit return payloads (redact secrets)
-- Remediation commands issued and post-patch scan diffs
-
-Store under your engagement’s evidence policy (chain-of-custody, hashes).
+| Variable | Role |
+|----------|------|
+| `CPOINTED_AUTHORIZED=1` | Mandatory gate for exploit / persistence / cleaner |
+| `CPOINTED_SSH_PUBKEY` | WHM Fileman SSH key tests |
+| `CPOINTED_KIVICARE_LAB_JWT` | KiviCare login PoC token (lab) |
+| `CPOINTED_GEEKYBOT_INSTALL_URL` | Geeky Bot install ZIP URL (lab); default is non-routable |
+| `CPOINTED_PAYLOAD_DIR` | Operator payload bundle root |

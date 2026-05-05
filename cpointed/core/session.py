@@ -54,6 +54,7 @@ class CPointedClient:
         content: Optional[bytes] = None,
         data: Optional[Dict[str, Any]] = None,
         files: Optional[Dict[str, Any]] = None,
+        json: Optional[Any] = None,
         timeout: float = 30.0,
         follow_redirects: bool = True,
     ) -> httpx.Response:
@@ -78,7 +79,9 @@ class CPointedClient:
                     "params": params,
                     "follow_redirects": follow_redirects,
                 }
-                if content is not None:
+                if json is not None:
+                    req_kw["json"] = json
+                elif content is not None:
                     req_kw["content"] = content
                 elif data is not None or files is not None:
                     if data is not None:
@@ -88,6 +91,12 @@ class CPointedClient:
                 return await client.request(**req_kw)
         except httpx.HTTPError as exc:  # pragma: no cover - network dependent
             raise SessionError(str(exc)) from exc
+
+    async def get(self, path: str, **kwargs: Any) -> httpx.Response:
+        return await self.request("GET", path, **kwargs)
+
+    async def post(self, path: str, **kwargs: Any) -> httpx.Response:
+        return await self.request("POST", path, **kwargs)
 
     async def get_json_api(self, endpoint: str, query: Dict[str, Any], timeout: float) -> httpx.Response:
         qs = urlencode(query)

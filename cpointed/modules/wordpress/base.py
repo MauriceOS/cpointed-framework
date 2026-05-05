@@ -14,16 +14,11 @@ from cpointed.modules.base import VulnerabilityModule
 
 
 class WordPressModule(VulnerabilityModule):
-    """Remote WordPress/plugin checks and live HTTP exploit primitives (authorized engagement use).
-
-    ``exploit()`` performs real POST/GET to ``admin-ajax.php`` and optional registration
-    endpoints for evidence capture and post-engagement reporting — not a no-op playbook.
-    """
+    """Remote WordPress/plugin checks and live HTTP exploit primitives (authorized engagement use)."""
 
     plugin_readme_paths: tuple[str, ...] = ()
     slug_hint: str = ""
     fixed_in_version: Optional[str] = None
-    #: Unauthenticated/nopriv-style ``action=`` for authorized exploit chain (subclass sets).
     exploit_admin_ajax_action: str = ""
     exploit_ajax_extra_fields: Dict[str, str] = {}
 
@@ -46,6 +41,15 @@ class WordPressModule(VulnerabilityModule):
     def _path(self, target: Target, rel: str) -> str:
         rel = rel if rel.startswith("/") else f"/{rel}"
         pre = self.wp_prefix(target)
+        if not pre:
+            return rel
+        return f"{pre}{rel}"
+
+    @staticmethod
+    def _path_for_wp(wp_path: str, rel: str) -> str:
+        """Join URL path prefix (no host) to relative path (exploit primitives)."""
+        rel = rel if rel.startswith("/") else f"/{rel}"
+        pre = (wp_path or "").strip().rstrip("/")
         if not pre:
             return rel
         return f"{pre}{rel}"
@@ -124,19 +128,31 @@ class WordPressModule(VulnerabilityModule):
         )
         return self._result(target, vuln, self.severity if vuln else 0.0, details)
 
-    async def exploit_remote_primitive(
+    async def discover_wp_install_path(
         self,
         target: Target,
         client: CPointedClient,
         *,
         timeout: float,
+    ) -> str:
+        """Return WordPress path prefix (``wp_base_path`` metadata); extend with live probes if needed."""
+        _ = client, timeout
+        return self.wp_prefix(target)
+
+    async def exploit_remote_primitive(
+        self,
+        client: CPointedClient,
+        wp_path: str,
+        *,
+        target: Target,
+        timeout: float,
     ) -> Dict[str, Any]:
-        """Plugin-specific primitive: default POST to ``admin-ajax.php`` when action is set."""
+        """Default POST to ``admin-ajax.php`` when ``exploit_admin_ajax_action`` is set."""
         out: Dict[str, Any] = {"admin_ajax_posts": []}
         if not self.exploit_admin_ajax_action:
             out["primitive_note"] = "override_exploit_remote_primitive_or_set_exploit_admin_ajax_action"
             return out
-        ajax = self._path(target, "/wp-admin/admin-ajax.php")
+        ajax = self._path_for_wp(wp_path, "/wp-admin/admin-ajax.php")
         fields: Dict[str, str] = {"action": self.exploit_admin_ajax_action}
         fields.update(self.exploit_ajax_extra_fields)
         body = urlencode(fields).encode("utf-8")
@@ -169,9 +185,9 @@ class WordPressModule(VulnerabilityModule):
         client: CPointedClient,
         *,
         timeout: float,
+        wp_path: str,
     ) -> Dict[str, Any]:
-        """POST registration form when open registration is enabled (live HTTP; often 404/closed)."""
-        reg_url = self._path(target, "/wp-login.php?action=register")
+        reg_url = self._path_for_wp(wp_path, "/wp-login.php?action=register")
         out: Dict[str, Any] = {"registration_probe": None}
         try:
             r0 = await client.request("GET", reg_url, timeout=timeout)
@@ -222,7 +238,10 @@ class WordPressModule(VulnerabilityModule):
             "target": f"{target.host}:{target.port}",
             "mode": "live_http_exploit_primitive",
         }
-        ajax_path = self._path(target, "/wp-admin/admin-ajax.php")
+        wp_path = await self.discover_wp_install_path(target, client, timeout=timeout)
+        trace["wp_install_path_prefix"] = wp_path or ""
+
+        ajax_path = self._path_for_wp(wp_path, "/wp-admin/admin-ajax.php")
         try:
             r_hello = await client.request(
                 "GET",
@@ -237,11 +256,15 @@ class WordPressModule(VulnerabilityModule):
         except Exception as exc:  # pragma: no cover - network
             trace["admin_ajax_heartbeat"] = {"path": ajax_path, "error": str(exc)}
 
-        primitive = await self.exploit_remote_primitive(target, client, timeout=timeout)
+        primitive = await self.exploit_remote_primitive(
+            client, wp_path, target=target, timeout=timeout
+        )
         trace.update(primitive)
-
+        trace["success"] = bool(primitive.get("success"))
         if kwargs.get("registration_probe", True):
-            reg = await self._attempt_open_registration(target, client, timeout=timeout)
+            reg = await self._attempt_open_registration(
+                target, client, timeout=timeout, wp_path=wp_path
+            )
             trace.update(reg)
 
         trace["remediation_hint"] = (
