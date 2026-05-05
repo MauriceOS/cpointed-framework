@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import socket
+from contextlib import suppress
 from typing import Any, Dict, Iterable, List, Tuple
 
 import httpx
@@ -33,10 +34,8 @@ async def scan_tcp_ports_async(host: str, ports: Iterable[int], timeout: float =
             conn = asyncio.open_connection(host, port)
             reader, writer = await asyncio.wait_for(conn, timeout=timeout)
             writer.close()
-            try:
+            with suppress(Exception):
                 await writer.wait_closed()
-            except Exception:
-                pass
             open_ports.append(port)
         except Exception:
             return

