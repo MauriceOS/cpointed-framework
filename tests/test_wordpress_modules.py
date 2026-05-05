@@ -18,11 +18,32 @@ def test_wordpress_module_applies_with_metadata_flags():
     assert m.applies_to(t2) is True
 
 
-def test_wordpress_exploit_playbook_when_authorized(monkeypatch):
+def test_wordpress_exploit_live_http_when_authorized(monkeypatch, httpserver):
     monkeypatch.setenv("CPOINTED_AUTHORIZED", "1")
+    httpserver.expect_request("/wp-login.php", method="GET").respond_with_data(
+        '<form name="registerform" id="registerform">',
+        content_type="text/html",
+    )
+    httpserver.expect_request("/wp-login.php", method="POST").respond_with_data(
+        "registration closed",
+        status=200,
+        content_type="text/html",
+    )
+    httpserver.expect_request("/wp-admin/admin-ajax.php", method="GET").respond_with_data("0", status=200)
+    httpserver.expect_request("/wp-admin/admin-ajax.php", method="POST").respond_with_data(
+        '{"success":false}',
+        content_type="application/json",
+    )
     m = CVE20261357WPvivid()
-    out = asyncio.run(m.exploit(Target(host="127.0.0.1", port=443)))
-    assert out["mode"] == "operator_playbook"
+    out = asyncio.run(
+        m.exploit(
+            Target(host=httpserver.host, port=httpserver.port, use_ssl=False),
+            timeout=5.0,
+        )
+    )
+    assert out["mode"] == "live_http_exploit_primitive"
+    assert "admin_ajax_posts" in out
+    assert len(out["admin_ajax_posts"]) >= 1
 
 
 def test_wordpress_exploit_blocked_without_auth(monkeypatch):

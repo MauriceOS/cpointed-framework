@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import re
 from typing import Any, Dict, Optional, Tuple
+from urllib.parse import urlencode
 
 from cpointed.core.engine import ScanResult, Target, TargetType
 from cpointed.core.session import CPointedClient
@@ -13,15 +14,18 @@ from cpointed.modules.base import VulnerabilityModule
 
 
 class WordPressModule(VulnerabilityModule):
-    """Remote WordPress/plugin checks plus advisory-version correlation.
+    """Remote WordPress/plugin checks and live HTTP exploit primitives (authorized engagement use).
 
-    Remote *exploit* primitives (upload/RCE) are intentionally out of scope;
-    use the operator playbook from ``exploit()`` when ``CPOINTED_AUTHORIZED=1``.
+    ``exploit()`` performs real POST/GET to ``admin-ajax.php`` and optional registration
+    endpoints for evidence capture and post-engagement reporting — not a no-op playbook.
     """
 
     plugin_readme_paths: tuple[str, ...] = ()
     slug_hint: str = ""
     fixed_in_version: Optional[str] = None
+    #: Unauthenticated/nopriv-style ``action=`` for authorized exploit chain (subclass sets).
+    exploit_admin_ajax_action: str = ""
+    exploit_ajax_extra_fields: Dict[str, str] = {}
 
     def applies_to(self, target: Target) -> bool:
         if target.target_type == TargetType.WORDPRESS:
@@ -120,6 +124,90 @@ class WordPressModule(VulnerabilityModule):
         )
         return self._result(target, vuln, self.severity if vuln else 0.0, details)
 
+    async def exploit_remote_primitive(
+        self,
+        target: Target,
+        client: CPointedClient,
+        *,
+        timeout: float,
+    ) -> Dict[str, Any]:
+        """Plugin-specific primitive: default POST to ``admin-ajax.php`` when action is set."""
+        out: Dict[str, Any] = {"admin_ajax_posts": []}
+        if not self.exploit_admin_ajax_action:
+            out["primitive_note"] = "override_exploit_remote_primitive_or_set_exploit_admin_ajax_action"
+            return out
+        ajax = self._path(target, "/wp-admin/admin-ajax.php")
+        fields: Dict[str, str] = {"action": self.exploit_admin_ajax_action}
+        fields.update(self.exploit_ajax_extra_fields)
+        body = urlencode(fields).encode("utf-8")
+        try:
+            r = await client.request(
+                "POST",
+                ajax,
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+                content=body,
+                timeout=timeout,
+            )
+            snippet = (r.text or "")[:2000]
+            out["admin_ajax_posts"].append(
+                {
+                    "path": ajax,
+                    "action": self.exploit_admin_ajax_action,
+                    "status_code": r.status_code,
+                    "body_snippet": snippet,
+                }
+            )
+        except Exception as exc:  # pragma: no cover - network
+            out["admin_ajax_posts"].append(
+                {"action": self.exploit_admin_ajax_action, "error": str(exc)}
+            )
+        return out
+
+    async def _attempt_open_registration(
+        self,
+        target: Target,
+        client: CPointedClient,
+        *,
+        timeout: float,
+    ) -> Dict[str, Any]:
+        """POST registration form when open registration is enabled (live HTTP; often 404/closed)."""
+        reg_url = self._path(target, "/wp-login.php?action=register")
+        out: Dict[str, Any] = {"registration_probe": None}
+        try:
+            r0 = await client.request("GET", reg_url, timeout=timeout)
+            login_user = os.environ.get("CPOINTED_WP_AUDIT_USER", "cpointed_audit_user")
+            login_email = os.environ.get("CPOINTED_WP_AUDIT_EMAIL", "cpointed-audit@example.invalid")
+            nonce = ""
+            m = re.search(r'name="[_]?wpnonce" value="([^"]+)"', r0.text or "", re.I)
+            if m:
+                nonce = m.group(1)
+            fields = {
+                "user_login": login_user,
+                "user_email": login_email,
+                "redirect_to": "",
+                "wp-submit": "Register",
+            }
+            if nonce:
+                fields["_wpnonce"] = nonce
+            body = urlencode(fields).encode("utf-8")
+            r1 = await client.request(
+                "POST",
+                reg_url,
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+                content=body,
+                timeout=timeout,
+            )
+            text = (r1.text or "").lower()
+            out["registration_probe"] = {
+                "get_status": r0.status_code,
+                "post_status": r1.status_code,
+                "response_hint_register_disabled": "error" in text or "not allowed" in text,
+                "body_snippet": (r1.text or "")[:1500],
+            }
+        except Exception as exc:  # pragma: no cover - network
+            out["registration_probe"] = {"error": str(exc)}
+        return out
+
     async def exploit(self, target: Target, **kwargs: Any) -> Dict[str, Any]:
         from cpointed.core.exceptions import UnauthorizedOperationError
 
@@ -127,15 +215,36 @@ class WordPressModule(VulnerabilityModule):
             raise UnauthorizedOperationError(
                 f"{self.name}: set CPOINTED_AUTHORIZED=1 only with explicit written permission."
             )
-        steps = [
-            "Collect vendor advisory, CVSS, and patched release list.",
-            "Capture remote readme/style version markers and archive checksums.",
-            "Upgrade via supported channel; re-run cpointed wp scan to confirm remediation.",
-            "Rotate secrets and review mu-plugins/uploads for unexpected PHP after incidents.",
-        ]
-        return {
+        timeout = float(kwargs.get("timeout") or 30)
+        client = CPointedClient(target)
+        trace: Dict[str, Any] = {
             "module": self.name,
-            "mode": "operator_playbook",
             "target": f"{target.host}:{target.port}",
-            "steps": steps,
+            "mode": "live_http_exploit_primitive",
         }
+        ajax_path = self._path(target, "/wp-admin/admin-ajax.php")
+        try:
+            r_hello = await client.request(
+                "GET",
+                ajax_path + "?action=heartbeat",
+                timeout=timeout,
+            )
+            trace["admin_ajax_heartbeat"] = {
+                "path": ajax_path,
+                "status_code": r_hello.status_code,
+                "body_snippet": (r_hello.text or "")[:800],
+            }
+        except Exception as exc:  # pragma: no cover - network
+            trace["admin_ajax_heartbeat"] = {"path": ajax_path, "error": str(exc)}
+
+        primitive = await self.exploit_remote_primitive(target, client, timeout=timeout)
+        trace.update(primitive)
+
+        if kwargs.get("registration_probe", True):
+            reg = await self._attempt_open_registration(target, client, timeout=timeout)
+            trace.update(reg)
+
+        trace["remediation_hint"] = (
+            "Archive this JSON for the org report; patch plugins, rotate creds, review users and mu-plugins."
+        )
+        return trace

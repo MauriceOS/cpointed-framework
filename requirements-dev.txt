@@ -1,3 +1,5 @@
 -r requirements.txt
 -r requirements-tui.txt
 pytest>=7.0.0
+pytest-asyncio>=0.23.0
+pytest-httpserver>=1.0.0

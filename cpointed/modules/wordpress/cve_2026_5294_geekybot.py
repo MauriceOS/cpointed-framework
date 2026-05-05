@@ -16,6 +16,8 @@ class CVE20265294GeekyBot(WordPressModule):
         "/wp-content/plugins/geekybot/readme.txt",
     )
     slug_hint = "geeky"
+    exploit_admin_ajax_action = "geekybot_install_plugin"
+    exploit_ajax_extra_fields = {"plugin_slug": "cpointed-probe-zip"}
 
     async def check(self, target: Target, *, timeout: float = 30.0) -> ScanResult:
         return await self.check_from_readme(target, timeout=timeout)

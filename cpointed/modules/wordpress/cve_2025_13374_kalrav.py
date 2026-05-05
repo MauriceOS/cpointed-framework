@@ -16,6 +16,8 @@ class CVE202513374Kalrav(WordPressModule):
         "/wp-content/plugins/kalrav/readme.txt",
     )
     slug_hint = "kalrav"
+    exploit_admin_ajax_action = "kalrav_ai_query"
+    exploit_ajax_extra_fields = {"query": "cpointed authorized inference probe", "session": "audit"}
 
     async def check(self, target: Target, *, timeout: float = 30.0) -> ScanResult:
         return await self.check_from_readme(target, timeout=timeout)

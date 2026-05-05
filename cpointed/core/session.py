@@ -52,11 +52,15 @@ class CPointedClient:
         headers: Optional[Dict[str, str]] = None,
         params: Optional[Dict[str, Any]] = None,
         content: Optional[bytes] = None,
+        data: Optional[Dict[str, Any]] = None,
+        files: Optional[Dict[str, Any]] = None,
         timeout: float = 30.0,
         follow_redirects: bool = True,
     ) -> httpx.Response:
         url = urljoin(self.base_url.rstrip("/") + "/", path.lstrip("/"))
-        merged = self._headers(headers)
+        merged = dict(self._headers(headers))
+        if files and "content-type" in {k.lower() for k in merged}:
+            merged = {k: v for k, v in merged.items() if k.lower() != "content-type"}
         try:
             timeout_obj = httpx.Timeout(timeout, connect=min(3.0, float(timeout)))
             client_kw: Dict[str, Any] = {
@@ -67,13 +71,21 @@ class CPointedClient:
             if self.proxy:
                 client_kw["proxy"] = self.proxy
             async with httpx.AsyncClient(**client_kw) as client:
-                return await client.request(
-                    method.upper(),
-                    url,
-                    headers=merged,
-                    params=params,
-                    content=content,
-                )
+                req_kw: Dict[str, Any] = {
+                    "method": method.upper(),
+                    "url": url,
+                    "headers": merged,
+                    "params": params,
+                    "follow_redirects": follow_redirects,
+                }
+                if content is not None:
+                    req_kw["content"] = content
+                elif data is not None or files is not None:
+                    if data is not None:
+                        req_kw["data"] = data
+                    if files is not None:
+                        req_kw["files"] = files
+                return await client.request(**req_kw)
         except httpx.HTTPError as exc:  # pragma: no cover - network dependent
             raise SessionError(str(exc)) from exc
 
