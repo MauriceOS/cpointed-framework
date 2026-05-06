@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Sn0w8ird (MauriceOS)
 # Made by Sn0w8ird
 """Setup for cpointed — MauriceOS / Sn0w8ird."""
 
@@ -8,7 +10,15 @@ setup(
     version="1.0.0",
     description="cpointed security research framework (authorized use only)",
     author="Sn0w8ird",
-    license="LicenseRef-MauriceOS",
+    license="MIT",
+    license_files=("LICENSE",),
+    classifiers=[
+        "License :: OSI Approved :: MIT License",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+    ],
     packages=find_packages(exclude=("tests",)),
     python_requires=">=3.10",
     install_requires=[

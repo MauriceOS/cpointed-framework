@@ -26,7 +26,7 @@ def write_html_report(results: List[ScanResult], path: str | Path, title: str = 
 <style>body{{font-family:system-ui,Segoe UI,Roboto,sans-serif;margin:2rem}} table{{border-collapse:collapse;width:100%}} th,td{{border:1px solid #ccc;padding:8px;text-align:left}} th{{background:#f4f4f4}}</style>
 </head><body>
 <h1>{html.escape(title)}</h1>
-<p>Author: Sn0w8ird · MauriceOS · For authorized testing only.</p>
+<p>Author: Sn0w8ird · MauriceOS · MIT License · For authorized testing only.</p>
 <table><thead><tr><th>Host</th><th>Port</th><th>Module</th><th>Vulnerable</th><th>Severity</th></tr></thead>
 <tbody>{body}</tbody></table>
 </body></html>"""

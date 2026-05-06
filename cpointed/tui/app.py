@@ -6,7 +6,7 @@ import os
 
 from textual import on, work
 from textual.app import App, ComposeResult
-from textual.containers import Vertical
+from textual.containers import ScrollableContainer, Vertical
 from textual.widgets import (
     DataTable,
     Footer,
@@ -18,6 +18,7 @@ from textual.widgets import (
     Tree,
 )
 
+from cpointed.core.banner import build_banner
 from cpointed.core.engine import CPointedEngine, ScanResult, Target
 from cpointed.modules import ALL_MODULES, DEFAULT_MODULES
 from cpointed.scanner.fingerprint import fingerprint_service, guess_target_type
@@ -48,6 +49,16 @@ class CPointedTUI(App):
     #dashboard-view { margin: 1 0; }
     #target-line { padding: 0 1; background: $panel; }
     #help { padding: 0 1; color: $text-muted; }
+    #banner-scroll {
+        max-height: 20;
+        border: solid $boost;
+        margin: 0 1;
+        background: $panel;
+    }
+    #official-banner {
+        text-style: none;
+        color: $text;
+    }
     #vuln-modal-outer {
         align: center middle;
     }
@@ -67,6 +78,8 @@ class CPointedTUI(App):
 
     def compose(self) -> ComposeResult:
         yield Header()
+        with ScrollableContainer(id="banner-scroll"):
+            yield Static(build_banner(), id="official-banner")
         with TabbedContent(initial="results"):
             with Tab("Results", id="results"):
                 with Vertical(id="results-stack"):

@@ -1,4 +1,15 @@
 # Made by Sn0w8ird
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Sn0w8ird (MauriceOS)
+"""Official startup banner for cpointed.
+
+Displays ASCII branding, ``cpointed.__version__``, Sn0w8ird / MauriceOS credits,
+dynamic exploit/auxiliary/post/payload counts (from ``cpointed.modules``,
+``cpointed.persistence``, ``cpointed.remediation``), static encoder/nop hints,
+user context (``USER`` / ``USERNAME``, ``socket.gethostname()``, cwd with ``~``,
+optional ``git rev-parse --abbrev-ref HEAD``), and lawful-use reminders including
+``CPOINTED_AUTHORIZED=1`` for destructive actions.
+"""
 
 from __future__ import annotations
 

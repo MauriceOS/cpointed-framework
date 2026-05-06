@@ -1,6 +1,6 @@
 # cpointed
 
-**Owner:** Sn0w8ird · **License:** MauriceOS (see `LICENSE`)
+**Owner:** Sn0w8ird · **License:** MIT (see `LICENSE`)
 
 ## Legal (read first)
 

@@ -275,6 +275,11 @@ def main(argv: list[str] | None = None) -> int:
         prog="cpointed",
         description="cpointed framework — Sn0w8ird / MauriceOS. Authorized security research only.",
     )
+    parser.add_argument(
+        "--no-banner",
+        action="store_true",
+        help="Suppress the startup ASCII banner (still skipped when stdout is not a TTY).",
+    )
     sub = parser.add_subparsers(dest="command", required=True)
 
     p_scan = sub.add_parser("scan", help="Run module checks against target(s)")
@@ -380,7 +385,11 @@ def main(argv: list[str] | None = None) -> int:
 
     ns = parser.parse_args(argv)
 
-    if sys.stdout.isatty() and os.environ.get("CPOINTED_NO_BANNER") != "1":
+    if (
+        sys.stdout.isatty()
+        and not ns.no_banner
+        and os.environ.get("CPOINTED_NO_BANNER") != "1"
+    ):
         from cpointed.core.banner import show_banner
 
         show_banner()
