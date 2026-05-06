@@ -35,9 +35,6 @@
 ╚══════════════════════════════════════════════════════════════════╝
 ```
 
-> **Suggested GitHub “About” description (copy-paste):**  
-> Modular authorised-security toolkit for cPanel/WHM, DirectAdmin, Mailman, and WordPress — scanning, CVE-tagged modules (e.g. CVE-2026-41940, CVE-2024-34015, WordPress plugin coverage), JSON/HTML reports, optional gated exploit. MIT.
-
 **cpointed** is meant for **real** red-team and blue-team workflows on hosting stacks: fingerprint services, run **CVE-labelled checks** against panels and WordPress sites, export evidence, triage in the TUI, and invoke **gated** exploit hooks only where you have permission and `CPOINTED_AUTHORIZED=1` when modules require it. A desktop GUI remains a stub.
 
 ## How teams use it
