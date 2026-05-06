@@ -380,6 +380,11 @@ def main(argv: list[str] | None = None) -> int:
 
     ns = parser.parse_args(argv)
 
+    if sys.stdout.isatty() and os.environ.get("CPOINTED_NO_BANNER") != "1":
+        from cpointed.core.banner import show_banner
+
+        show_banner()
+
     if ns.command == "remediate":
         return _cmd_remediate(ns)
     if ns.command == "local":
