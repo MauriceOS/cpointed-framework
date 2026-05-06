@@ -1,17 +1,28 @@
 # cpointed
 
-**Owner:** Sn0w8ird · **License:** MIT (see `LICENSE`)
+**Owner:** Sn0w8ird · **License:** MIT (see `LICENSE` and `AUTHORS`)
+
+Modular Python toolkit for **authorised** security work on hosting stacks: cPanel/WHM, DirectAdmin, related daemons, and WordPress plugin risk modules. It provides a scan engine, pluggable checks, JSON/HTML reporting, a Textual TUI, and gated exploit hooks. A desktop GUI remains a stub.
 
 ## Legal (read first)
 
-**Legal use only:** This framework is for **authorized** security assessments, **blue-team** defense, and **controlled research**. **Unauthorized access to computer systems is illegal.** All exploitation and persistence features require **explicit written permission** from the system owner and the environment variable **`CPOINTED_AUTHORIZED=1`**. Using this software outside a lawful scope is prohibited; you are responsible for compliance with applicable laws and contracts.
+Use this software only for **authorised** assessments, **blue-team** hardening, and **controlled** research. **Unauthorized access to computer systems is illegal.** Exploit and persistence paths expect **explicit written permission** from the system owner and **`CPOINTED_AUTHORIZED=1`** where the code enforces it. You are responsible for complying with law and contract.
 
-See also `docs/LAB_SETUP.md` for a defensive lab workflow.
+The MIT License does not authorise misuse. See the disclaimer in `LICENSE`.
 
-cpointed is a modular Python framework for **authorized** security research around
-hosting control panels (cPanel/WHM, DirectAdmin, related components). It ships a
-core engine, pluggable vulnerability modules, scanners, JSON/HTML reporting, a
-CLI, and a Textual TUI. A future desktop GUI is stubbed.
+## Features
+
+- Control-panel oriented modules (e.g. cPanel, DirectAdmin) plus optional WordPress CVE-style modules when you pass `--wordpress` on `scan`.
+- Async scanning, fingerprinting, CIDR and target-file inputs, optional port discovery.
+- **`exploit`** command with CVE-style module selection (gated; **`--dry-run`** where supported).
+- **`wp`** subcommands: `discover` (base URL probes) and `scan` (HTTP module surface against a host).
+- **`remediate`** for curated cPanel-oriented checklist output (and optional local execution on Linux/WSL).
+- **`local`** utilities (enumeration, operator bundle helpers, stubs) for lab and recovery workflows.
+- **Startup banner** (ASCII branding, version, dynamic module counts): shown on interactive CLI runs; use **`--no-banner`** or set **`CPOINTED_NO_BANNER=1`** to suppress it. The TUI shows the same banner in a scrollable strip at the top.
+
+## Requirements
+
+- Python **3.10+**
 
 ## Install
 
@@ -19,17 +30,49 @@ CLI, and a Textual TUI. A future desktop GUI is stubbed.
 pip install -e ".[tui]"
 ```
 
-## CLI
+Optional extras:
+
+- **`[tui]`** — Textual + Rich for `cpointed tui`
+- **`[remediation]`** — Paramiko-backed helpers
+- **`[dev]`** — pytest stack for contributors
+
+## CLI examples
+
+Entry points: `cpointed` (console script) or `python -m cpointed` (same as `python -m cpointed.cli.main`).
 
 ```bash
-python -m cpointed scan --host 127.0.0.1 --port 2083 --fingerprint
-python -m cpointed scan --targets-file targets.txt --json-out report.json --html-out report.html
-# Or: python -m cpointed.cli.main scan ...
+# Scan a single host with service fingerprint
+cpointed scan --host 127.0.0.1 --port 2083 --fingerprint
+
+# Include WordPress modules in the engine run
+cpointed scan --host 127.0.0.1 --wordpress
+
+# Batch scan with reports
+cpointed scan --targets-file targets.txt --json-out report.json --html-out report.html
+
+# Skip the startup banner (non-TTY stdout skips it automatically)
+cpointed --no-banner scan --host 127.0.0.1
+
+# Exploit hook (requires authorisation gates in the module; pass CVE id your build expects)
+cpointed exploit --cve CVE-2026-41940 --host 127.0.0.1 --port 2083
+
+# WordPress HTTP discovery / module scan
+cpointed wp discover --url https://lab.example/
+cpointed wp scan --host 127.0.0.1 --port 8080 --path /
+
+# Blue-team checklist
+cpointed remediate --plan-only
+
+# Textual dashboard
 cpointed tui
 ```
 
-Exploit hooks are **gated** (e.g. `CPOINTED_AUTHORIZED=1` for research modules that implement `exploit()`).
+Use **`cpointed --help`** and **`cpointed <command> --help`** for the full option set.
+
+## Lab environment
+
+For a defensive, container-oriented workflow (with licensing cautions for any third-party panel images), see **`docs/LAB_SETUP.md`**.
 
 ## Contributing
 
-See `CONTRIBUTING.md`.
+See **`CONTRIBUTING.md`** (MIT contributions, ethics, tests).
