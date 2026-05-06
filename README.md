@@ -2,6 +2,43 @@
 
 **Owner:** Sn0w8ird · **License:** MIT (see `LICENSE` and `AUTHORS`)
 
+## Banner
+
+On interactive CLI and TUI startup, cpointed prints a Metasploit-style frame defined in [`cpointed/core/banner.py`](cpointed/core/banner.py). Module counts and the user line are **dynamic**; the block below is a representative snapshot.
+
+```text
+╔══════════════════════════════════════════════════════════════════╗
+║                                                                  ║
+║    ██████╗██████╗  ██████╗ ██╗███╗   ██╗████████╗███████╗██████╗ ║
+║   ██╔════╝██╔══██╗██╔═══██╗██║████╗  ██║╚══██╔══╝██╔════╝██╔══██╗║
+║   ██║     ██████╔╝██║   ██║██║██╔██╗ ██║   ██║   █████╗  ██║  ██║║
+║   ██║     ██╔═══╝ ██║   ██║██║██║╚██╗██║   ██║   ██╔══╝  ██║  ██║║
+║   ╚██████╗██║     ╚██████╔╝██║██║ ╚████║   ██║   ███████╗██████╔╝║
+║    ╚═════╝╚═╝      ╚═════╝ ╚═╝╚═╝  ╚═══╝   ╚═╝   ╚══════╝╚═════╝ ║
+║                                                                  ║
+║         Red Team Framework | Hosting Control Panel Security      ║
+║                   v1.0.0 | Authorized Use Only                   ║
+║                                                                  ║
+║                Built by: Sn0w8ird                                ║
+║                Licensed to: MauriceOS                            ║
+╠══════════════════════════════════════════════════════════════════╣
+║  + ---[ 13 exploits - 8 auxiliary - 5 post                       ║
+║  + ---[ 12 payloads - 6 encoders - 2 nops                        ║
+║  + ---[ Free for authorized use only                             ║
+╠══════════════════════════════════════════════════════════════════╣
+║                                                                  ║
+║  ☺  Welcome to cpointed – Red Team for Hosting Control Panels    ║
+║                                                                  ║
+║  ● Logged in as: operator                                        ║
+║    operator@localhost:~/cpointed [main]                          ║
+║                                                                  ║
+║  ──────────────────────────────────────────────────────────────  ║
+║  Enter a command or use --help. For destructive actions, set     ║
+║  CPOINTED_AUTHORIZED=1 in your environment.                      ║
+║  ──────────────────────────────────────────────────────────────  ║
+╚══════════════════════════════════════════════════════════════════╝
+```
+
 Modular Python toolkit for **authorised** security work on hosting stacks: cPanel/WHM, DirectAdmin, related daemons, and WordPress plugin risk modules. It provides a scan engine, pluggable checks, JSON/HTML reporting, a Textual TUI, and gated exploit hooks. A desktop GUI remains a stub.
 
 ## Legal (read first)
