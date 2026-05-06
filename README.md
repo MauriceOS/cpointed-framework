@@ -2,10 +2,6 @@
 
 **Owner:** Sn0w8ird · **License:** MIT (see `LICENSE` and `AUTHORS`)
 
-## Banner
-
-On interactive CLI and TUI startup, cpointed prints a Metasploit-style frame defined in [`cpointed/core/banner.py`](cpointed/core/banner.py). Module counts and the user line are **dynamic**; the block below is a representative snapshot.
-
 ```text
 ╔══════════════════════════════════════════════════════════════════╗
 ║                                                                  ║
