@@ -3,7 +3,6 @@
 """Persistence stubs: implement only under legal authorization."""
 
 # Registry labels for reporting / banner counts (authorized use only).
-# Made by Sn0w8ird
 PERSISTENCE_MODULES = [
     "cron",
     "ssh",

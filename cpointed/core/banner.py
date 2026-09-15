@@ -1,15 +1,7 @@
 # Made by Sn0w8ird
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 Sn0w8ird (MauriceOS)
-"""Official startup banner for cpointed.
-
-Displays ASCII branding, ``cpointed.__version__``, Sn0w8ird / MauriceOS credits,
-dynamic exploit/auxiliary/post/payload counts (from ``cpointed.modules``,
-``cpointed.persistence``, ``cpointed.remediation``), static encoder/nop hints,
-user context (``USER`` / ``USERNAME``, ``socket.gethostname()``, cwd with ``~``,
-optional ``git rev-parse --abbrev-ref HEAD``), and lawful-use reminders including
-``CPOINTED_AUTHORIZED=1`` for destructive actions.
-"""
+"""Startup banner for cpointed: ASCII art, version, dynamic module counts, operator context."""
 
 from __future__ import annotations
 
@@ -87,43 +79,50 @@ def _operator_identity() -> str:
 def build_banner() -> str:
     who = _operator_identity()
     ctx = get_user_and_path()
-    return f"""
-╔══════════════════════════════════════════════════════════════════╗
-║                                                                  ║
-║    ██████╗██████╗  ██████╗ ██╗███╗   ██╗████████╗███████╗██████╗ ║
-║   ██╔════╝██╔══██╗██╔═══██╗██║████╗  ██║╚══██╔══╝██╔════╝██╔══██╗║
-║   ██║     ██████╔╝██║   ██║██║██╔██╗ ██║   ██║   █████╗  ██║  ██║║
-║   ██║     ██╔═══╝ ██║   ██║██║██║╚██╗██║   ██║   ██╔══╝  ██║  ██║║
-║   ╚██████╗██║     ╚██████╔╝██║██║ ╚████║   ██║   ███████╗██████╔╝║
-║    ╚═════╝╚═╝      ╚═════╝ ╚═╝╚═╝  ╚═══╝   ╚═╝   ╚══════╝╚═════╝ ║
-║                                                                  ║
-║         Red Team Framework | Hosting Control Panel Security      ║
-║                   v{VERSION} | Authorized Use Only               ║
-║                                                                  ║
-║                Built by: Sn0w8ird                               ║
-║                Licensed to: MauriceOS                            ║
-╠══════════════════════════════════════════════════════════════════╣
-║  + ---[ {EXPLOIT_COUNT} exploits - {AUX_COUNT} auxiliary - {POST_COUNT} post                ║
-║  + ---[ {PAYLOAD_COUNT} payloads - 6 encoders - 2 nops                        ║
-║  + ---[ Free for authorized use only                          ║
-╠══════════════════════════════════════════════════════════════════╣
-║                                                                  ║
-║  ☺  Welcome to cpointed – Red Team for Hosting Control Panels    ║
-║                                                                  ║
-║  ● Logged in as: {who}                            ║
-║    {ctx}                                            ║
-║                                                                  ║
-║  ────────────────────────────────────────────────────────────── ║
-║  Enter a command or use --help. For destructive actions, set    ║
-║  CPOINTED_AUTHORIZED=1 in your environment.                     ║
-║  ────────────────────────────────────────────────────────────── ║
-╚══════════════════════════════════════════════════════════════════╝
-"""
+
+    def _pad(s: str, width: int = 66) -> str:
+        """Fit *s* into *width* chars so the right ║ border stays aligned."""
+        return s[:width].ljust(width)
+
+    stat1 = f"  + ---[ {EXPLOIT_COUNT} exploits - {AUX_COUNT} auxiliary - {POST_COUNT} post"
+    stat2 = f"  + ---[ {PAYLOAD_COUNT} persistence payloads"
+    ver_line = f"                   v{VERSION} | Authorized Use Only"
+    logged = f"  \u25cf  Logged in as: {who}"
+    ctxline = f"    {ctx}"
+    return (
+        "\n"
+        "╔══════════════════════════════════════════════════════════════════╗\n"
+        "║                                                                  ║\n"
+        "║    ██████╗██████╗  ██████╗ ██╗███╗   ██╗████████╗███████╗██████╗ ║\n"
+        "║   ██╔════╝██╔══██╗██╔═══██╗██║████╗  ██║╚══██╔══╝██╔════╝██╔══██╗║\n"
+        "║   ██║     ██████╔╝██║   ██║██║██╔██╗ ██║   ██║   █████╗  ██║  ██║║\n"
+        "║   ██║     ██╔═══╝ ██║   ██║██║██║╚██╗██║   ██║   ██╔══╝  ██║  ██║║\n"
+        "║   ╚██████╗██║     ╚██████╔╝██║██║ ╚████║   ██║   ███████╗██████╔╝║\n"
+        "║    ╚═════╝╚═╝      ╚═════╝ ╚═╝╚═╝  ╚═══╝   ╚═╝   ╚══════╝╚═════╝ ║\n"
+        "║                                                                  ║\n"
+        "║         Red Team Framework | Hosting Control Panel Security      ║\n"
+        f"║{_pad(ver_line)}║\n"
+        "║                                                                  ║\n"
+        "║                Built by: Sn0w8ird                               ║\n"
+        "║                Licensed to: MauriceOS                            ║\n"
+        "╠══════════════════════════════════════════════════════════════════╣\n"
+        f"║{_pad(stat1)}║\n"
+        f"║{_pad(stat2)}║\n"
+        "║  + ---[ Free for authorized use only                             ║\n"
+        "╠══════════════════════════════════════════════════════════════════╣\n"
+        "║                                                                  ║\n"
+        "║  ☺  Welcome to cpointed – Red Team for Hosting Control Panels    ║\n"
+        "║                                                                  ║\n"
+        f"║{_pad(logged)}║\n"
+        f"║{_pad(ctxline)}║\n"
+        "║                                                                  ║\n"
+        "║  ──────────────────────────────────────────────────────────────  ║\n"
+        "║  Enter a command or use --help. For destructive actions, set     ║\n"
+        "║  CPOINTED_AUTHORIZED=1 in your environment.                      ║\n"
+        "║  ──────────────────────────────────────────────────────────────  ║\n"
+        "╚══════════════════════════════════════════════════════════════════╝\n"
+    )
 
 
 def show_banner() -> None:
     print(build_banner())
-
-
-# Back-compat: static frame with live counts only (no user context).
-BANNER = build_banner()

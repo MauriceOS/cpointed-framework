@@ -19,7 +19,7 @@
 ║                Licensed to: MauriceOS                            ║
 ╠══════════════════════════════════════════════════════════════════╣
 ║  + ---[ 13 exploits - 8 auxiliary - 5 post                       ║
-║  + ---[ 12 payloads - 6 encoders - 2 nops                        ║
+║  + ---[ 12 persistence payloads                                  ║
 ║  + ---[ Free for authorized use only                             ║
 ╠══════════════════════════════════════════════════════════════════╣
 ║                                                                  ║
