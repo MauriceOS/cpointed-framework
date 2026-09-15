@@ -39,6 +39,8 @@ def test_path_traversal_blocked(tmp_path):
     b = OperatorBundle.from_path(root)
     with pytest.raises(ValueError, match="inside"):
         b.read_bytes("../outside")
+
+
 def test_operator_bundle_for_target_metadata(tmp_path):
     root = tmp_path / "op"
     root.mkdir()

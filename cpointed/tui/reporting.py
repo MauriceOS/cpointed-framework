@@ -1,5 +1,5 @@
 # Made by Sn0w8ird
-"""Build structured strings and payloads for creative (but professional) TUI views."""
+"""Structured text helpers for TUI views: summaries, heatmaps, attack-tree payloads."""
 
 from __future__ import annotations
 

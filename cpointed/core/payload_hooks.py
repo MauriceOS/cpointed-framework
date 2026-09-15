@@ -1,6 +1,6 @@
 # Made by Sn0w8ird
 
-"""Load and execute external payload files (PHP, bash, Python) – for authorized testing only."""
+"""Payload loading helpers — load, template, and prepare payloads for authorized testing."""
 
 from __future__ import annotations
 
@@ -13,13 +13,8 @@ class PayloadHook:
 
     @staticmethod
     def load_payload(payload_source: str, context: Dict[str, Any]) -> str:
-        """
-        payload_source can be:
-          - file path (starts with @) e.g., @./shell.php
-          - base64 encoded string (starts with b64:)
-          - raw string (treated as code)
-        context provides variables like {c2_host}, {c2_port}, {callback_url}
-        """
+        """Load a payload from a file (``@path``), base64 string (``b64:…``), or raw string,
+        then substitute ``{key}`` placeholders from *context*. Unknown keys are left as-is."""
         if payload_source.startswith("@"):
             path = payload_source[1:]
             with open(path, encoding="utf-8") as f:

@@ -19,7 +19,7 @@ DEFAULT_UAS = [
 
 
 class CPointedClient:
-    """Async HTTP client with jitter, UA rotation, and proxy hooks."""
+    """Async HTTP client with UA rotation and optional proxy support."""
 
     def __init__(
         self,
@@ -66,7 +66,6 @@ class CPointedClient:
             timeout_obj = httpx.Timeout(timeout, connect=min(3.0, float(timeout)))
             client_kw: Dict[str, Any] = {
                 "verify": self.verify_ssl,
-                "follow_redirects": follow_redirects,
                 "timeout": timeout_obj,
             }
             if self.proxy:
