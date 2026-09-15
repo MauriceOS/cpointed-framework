@@ -1,6 +1,5 @@
 # Made by Sn0w8ird
 
-import asyncio
 import json
 
 import pytest

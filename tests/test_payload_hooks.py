@@ -1,7 +1,5 @@
 # Made by Sn0w8ird
 
-import base64
-
 from cpointed.core.payload_hooks import PayloadHook
 
 

@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Tuple
 
 from cpointed.core.engine import ScanResult, Target
-from cpointed.tui.icons import Icons, Tags, sev_label, severity_rich_tag
+from cpointed.tui.icons import Icons, Tags, sev_label
 
 
 def attack_tree_payload(target: Target, results: List[ScanResult]) -> Dict[str, Any]:
