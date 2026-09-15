@@ -34,7 +34,6 @@ def remediate_cpanel(host: str, username: str, key_path: str, *, auto_patch: boo
     if auto_patch:
         run("/scripts/upcp --force")
     ssh.close()
-    print("[+] Remediation commands issued (verify on host).")
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -1,20 +1,17 @@
-# Contributing to cpointed
+# Contributing
 
 ## License
 
-By submitting a pull request or other contribution, you agree to license your changes under the **same terms as the project** (see the root `LICENSE` — **MIT License**). Contributors retain copyright in their contributions.
-
-Optional: add yourself to `AUTHORS` or a `CONTRIBUTORS` file for attribution.
+Contributions are licensed under the project's MIT License (see `LICENSE`). You retain copyright in your submissions; optionally add yourself to `AUTHORS`.
 
 ## Conventions
 
-- **Authoring:** Sign commits and code comments per project convention (`# Made by Sn0w8ird` in Python). New or substantially edited Python files may include:
+- Python files open with `# Made by Sn0w8ird`. New or substantially edited files may also include the SPDX header and copyright line.
+- Only contribute capabilities that serve authorized research and defence.
 
-  ```text
-  # SPDX-License-Identifier: MIT
-  # Copyright (c) 2026 Sn0w8ird (MauriceOS)
-  ```
+## Tests
 
-- **Ethics:** Only contribute capabilities intended for authorized research and defence.
-
-- **Tests:** `pytest` from the repository root after `pip install -e ".[dev]"`.
+```bash
+pip install -e ".[dev]"
+pytest
+```
