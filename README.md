@@ -12,27 +12,12 @@
 ║   ╚██████╗██║     ╚██████╔╝██║██║ ╚████║   ██║   ███████╗██████╔╝║
 ║    ╚═════╝╚═╝      ╚═════╝ ╚═╝╚═╝  ╚═══╝   ╚═╝   ╚══════╝╚═════╝ ║
 ║                                                                  ║
-║         Red Team Framework | Hosting Control Panel Security      ║
-║                   v1.0.0 | Authorized Use Only                   ║
+║  v1.0.0  |  Red Team Framework  |  MIT  |  Authorized Use Only   ║
+║  Sn0w8ird / MauriceOS                                            ║
 ║                                                                  ║
-║                Built by: Sn0w8ird                                ║
-║                Licensed to: MauriceOS                            ║
-╠══════════════════════════════════════════════════════════════════╣
-║  + ---[ 13 exploits - 8 auxiliary - 5 post                       ║
-║  + ---[ 12 persistence payloads                                  ║
-║  + ---[ Free for authorized use only                             ║
-╠══════════════════════════════════════════════════════════════════╣
-║                                                                  ║
-║  ☺  Welcome to cpointed – Red Team for Hosting Control Panels    ║
-║                                                                  ║
-║  ● Logged in as: operator                                        ║
-║    operator@localhost:~/cpointed [main]                          ║
-║                                                                  ║
-║  ──────────────────────────────────────────────────────────────  ║
-║  Enter a command or use --help. For destructive actions, set     ║
-║  CPOINTED_AUTHORIZED=1 in your environment.                      ║
-║  ──────────────────────────────────────────────────────────────  ║
+║  14 exploits  8 auxiliary  5 post  12 persistence                ║
 ╚══════════════════════════════════════════════════════════════════╝
+Use --help for available commands.  Set CPOINTED_AUTHORIZED=1 for exploit operations.
 ```
 
 **cpointed** is meant for **real** red-team and blue-team workflows on hosting stacks: fingerprint services, run **CVE-labelled checks** against panels and WordPress sites, export evidence, triage in the TUI, and invoke **gated** exploit hooks only where you have permission and `CPOINTED_AUTHORIZED=1` when modules require it. A desktop GUI remains a stub.

@@ -1,7 +1,5 @@
 # cpointed Lab Environment (Vulnerable cPanel + WordPress)
 
-# Made by Sn0w8ird
-
 This document supports **authorized** lab testing of CVE-2026-41940-class chains and WordPress CVE primitives. **Do not** aim tooling at systems without written permission.
 
 ## Legal
