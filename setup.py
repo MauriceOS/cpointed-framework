@@ -3,11 +3,23 @@
 # Made by Sn0w8ird
 """Setup for cpointed — MauriceOS / Sn0w8ird."""
 
+import re
+from pathlib import Path
+
 from setuptools import find_packages, setup
+
+
+def _version() -> str:
+    text = (Path(__file__).parent / "cpointed" / "__init__.py").read_text(encoding="utf-8")
+    m = re.search(r'^__version__\s*=\s*["\']([^"\']+)["\']', text, re.MULTILINE)
+    if not m:
+        raise RuntimeError("__version__ not found in cpointed/__init__.py")
+    return m.group(1)
+
 
 setup(
     name="cpointed",
-    version="1.0.0",
+    version=_version(),
     description="cpointed security research framework (authorized use only)",
     author="Sn0w8ird",
     license="MIT",
